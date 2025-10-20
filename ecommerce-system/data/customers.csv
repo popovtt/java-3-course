@@ -1,0 +1,5 @@
+firstName,lastName,email,phone,registrationDate,tier
+Іван,Петренко,ivan@example.com,+380501234567,2024-01-15,BRONZE
+Марія,Коваленко,maria@example.com,+380509876543,2023-06-20,SILVER
+Олександр,Шевченко,alex@example.com,+380501111111,2022-03-10,GOLD
+Анна,Бондаренко,anna@example.com,+380502222222,2024-09-01,BRONZE

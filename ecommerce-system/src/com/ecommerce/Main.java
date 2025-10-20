@@ -1,336 +1,243 @@
 package com.ecommerce;
 
-import com.ecommerce.enums.*;
-import com.ecommerce.model.*;
-import java.time.LocalDate;
+import com.ecommerce.exceptions.InvalidDataException;
+import com.ecommerce.model.CustomerInfo;
+import com.ecommerce.model.ProductInfo;
+import com.ecommerce.service.CustomerService;
+import com.ecommerce.service.ProductService;
+import com.ecommerce.util.Logger;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
 public class Main {
 
+    private static final Logger logger = Logger.getInstance();
+
     public static void main(String[] args) {
-        System.out.println("=".repeat(80));
-        System.out.println("ДЕМОНСТРАЦІЯ E-COMMERCE SYSTEM - ЛР 2");
-        System.out.println("Enum, Record та Switch-case");
-        System.out.println("=".repeat(80));
+        logger.info("=".repeat(80));
+        logger.info("ЗАПУСК E-COMMERCE SYSTEM - ЛР 3: Обробка виключень");
+        logger.info("=".repeat(80));
 
-        demonstrateEnums();
-        demonstrateRecords();
-        demonstrateSwitchExpressions();
-        demonstrateFullScenario();
-    }
+        try {
+            // Демонстрація 1: Завантаження товарів
+            demonstrateProductLoading();
 
-    private static void demonstrateEnums() {
-        System.out.println("\n" + "=".repeat(80));
-        System.out.println("1. ДЕМОНСТРАЦІЯ ENUM");
-        System.out.println("=".repeat(80));
+            // Демонстрація 2: Завантаження клієнтів
+            demonstrateCustomerLoading();
 
-        // OrderStatus
-        System.out.println("\n--- OrderStatus ---");
-        for (OrderStatus status : OrderStatus.values()) {
-            System.out.println(status);
-            System.out.println("  • Активний: " + status.isActive());
-            System.out.println("  • Можна скасувати: " + status.canCancel());
-            System.out.println("  • Очікувані дні: " + status.getEstimatedDays());
-        }
+            // Демонстрація 3: Обробка помилок
+            demonstrateErrorHandling();
 
-        // ProductCategory
-        System.out.println("\n--- ProductCategory ---");
-        for (ProductCategory category : ProductCategory.values()) {
-            System.out.println(category);
-            System.out.println("  • Ціна з податком (1000 грн): " +
-                    category.getPriceWithTax(1000.0) + " грн");
-            System.out.println("  • Можна повернути: " + category.isReturnable());
-            System.out.println("  • Днів на повернення: " + category.getReturnDays());
-        }
+            // Демонстрація 4: Multi-catch
+            demonstrateMultiCatch();
 
-        // PaymentMethod
-        System.out.println("\n--- PaymentMethod ---");
-        for (PaymentMethod method : PaymentMethod.values()) {
-            System.out.println(method);
-            System.out.println("  • Комісія з 1000 грн: " +
-                    method.calculateCommission(1000.0) + " грн");
-            System.out.println("  • Потребує верифікації: " + method.requiresVerification());
-        }
+            // Демонстрація 5: Try-with-resources
+            demonstrateTryWithResources();
 
-        // ShipmentStatus
-        System.out.println("\n--- ShipmentStatus ---");
-        for (ShipmentStatus status : ShipmentStatus.values()) {
-            System.out.println(status);
-            System.out.println("  • В процесі: " + status.isInProgress());
-            System.out.println("  • Завершено: " + status.isCompleted());
+            logger.info("=".repeat(80));
+            logger.info("✓ Програма завершена успішно!");
+            logger.info("=".repeat(80));
+
+        } catch (Exception e) {
+            logger.error("Критична помилка в main: " + e.getMessage(), e);
         }
     }
 
-    private static void demonstrateRecords() {
+    private static void demonstrateProductLoading() {
         System.out.println("\n" + "=".repeat(80));
-        System.out.println("2. ДЕМОНСТРАЦІЯ RECORD");
+        System.out.println("1. ЗАВАНТАЖЕННЯ ТОВАРІВ З ФАЙЛУ");
         System.out.println("=".repeat(80));
 
-        // ProductInfo
-        System.out.println("\n--- ProductInfo ---");
-        ProductInfo laptop = ProductInfo.createProduct(
-                "Ноутбук Dell XPS 15",
-                45000,
-                10,
-                ProductCategory.ELECTRONICS
-        );
-        System.out.println(laptop);
-        System.out.println("  • Ціна з податком: " + laptop.getPriceWithTax() + " грн");
-        System.out.println("  • Податок: " + laptop.getTaxAmount() + " грн");
-        System.out.println("  • Статус: " + laptop.getStockStatus());
+        ProductService productService = new ProductService();
 
-        // Незмінність record
-        System.out.println("\n--- Незмінність Record ---");
-        System.out.println("Початковий stock: " + laptop.stock());
-        ProductInfo laptopUpdated = laptop.decreaseStock(3);
-        System.out.println("Після decreaseStock(3):");
-        System.out.println("  • Оригінальний stock: " + laptop.stock());
-        System.out.println("  • Новий об'єкт stock: " + laptopUpdated.stock());
+        try {
+            logger.info("Спроба завантаження товарів...");
+            List<ProductInfo> products = productService.loadProducts();
 
-        // CustomerInfo
-        System.out.println("\n--- CustomerInfo ---");
-        CustomerInfo customer = CustomerInfo.createCustomer(
-                "Іван",
-                "Петренко",
-                "ivan@example.com",
-                "+380501234567"
-        );
-        System.out.println(customer);
-        System.out.println("  • Статус: " + customer.getMembershipStatus());
-        System.out.println("  • Знижка: " + (customer.getDiscount() * 100) + "%");
+            System.out.println("\n✓ Успішно завантажено " + products.size() + " товарів:");
+            products.forEach(p -> System.out.println("  • " + p));
 
-        CustomerInfo customerUpgraded = customer.upgradeTier();
-        System.out.println("\nПісля upgradeTier():");
-        System.out.println("  • Оригінальний tier: " + customer.tier());
-        System.out.println("  • Новий tier: " + customerUpgraded.tier());
+        } catch (FileNotFoundException e) {
+            logger.error("Файл не знайдено", e);
+            System.err.println("❌ ПОМИЛКА: Файл не знайдено - " + e.getMessage());
 
-        // OrderInfo
-        System.out.println("\n--- OrderInfo ---");
-        ProductInfo phone = ProductInfo.createProduct(
-                "iPhone 15",
-                35000,
-                5,
-                ProductCategory.ELECTRONICS
-        );
+        } catch (InvalidDataException e) {
+            logger.error("Невалідні дані", e);
+            System.err.println("❌ ПОМИЛКА: " + e.getDetailedMessage());
 
-        OrderInfo order = OrderInfo.createOrder(
-                customer,
-                List.of(laptop, phone),
-                PaymentMethod.CREDIT_CARD
-        );
+        } catch (IOException e) {
+            logger.error("Помилка вводу/виводу", e);
+            System.err.println("❌ ПОМИЛКА: Проблема з читанням файлу - " + e.getMessage());
 
-        System.out.println(order);
-        System.out.println("  • Підсумок: " + order.getSubtotal() + " грн");
-        System.out.println("  • Податки: " + order.getTaxTotal() + " грн");
-        System.out.println("  • Знижка: " + order.getDiscount() + " грн");
-        System.out.println("  • Комісія: " + order.getPaymentCommission() + " грн");
-        System.out.println("  • Разом: " + order.getTotalAmount() + " грн");
+        } finally {
+            logger.info("Завершення завантаження товарів");
+            System.out.println("\n[FINALLY] Блок finally виконано (закриття ресурсів)");
+        }
     }
 
-    private static void demonstrateSwitchExpressions() {
+    private static void demonstrateCustomerLoading() {
         System.out.println("\n" + "=".repeat(80));
-        System.out.println("3. ДЕМОНСТРАЦІЯ SWITCH EXPRESSIONS");
+        System.out.println("2. ЗАВАНТАЖЕННЯ КЛІЄНТІВ З ФАЙЛУ");
         System.out.println("=".repeat(80));
 
-        // Switch з OrderStatus
-        System.out.println("\n--- Switch з OrderStatus ---");
-        OrderStatus[] statuses = OrderStatus.values();
+        CustomerService customerService = new CustomerService();
 
-        for (OrderStatus status : statuses) {
-            String message = switch (status) {
-                case PENDING -> "⏳ Замовлення очікує обробки. Будь ласка, зачекайте.";
-                case CONFIRMED -> "✅ Ваше замовлення підтверджено!";
-                case PROCESSING -> "📦 Ми обробляємо ваше замовлення.";
-                case SHIPPED -> "🚚 Замовлення в дорозі до вас!";
-                case DELIVERED -> "✓ Замовлення успішно доставлене!";
-                case CANCELLED -> "❌ На жаль, замовлення скасовано.";
-            };
-            System.out.println(status.getUkrainianName() + ": " + message);
+        try {
+            logger.info("Спроба завантаження клієнтів...");
+            List<CustomerInfo> customers = customerService.loadCustomers();
+
+            System.out.println("\n✓ Успішно завантажено " + customers.size() + " клієнтів:");
+            customers.forEach(c -> System.out.println("  • " + c));
+
+        } catch (FileNotFoundException e) {
+            logger.error("Файл клієнтів не знайдено", e);
+            System.err.println("❌ ПОМИЛКА: " + e.getMessage());
+
+        } catch (InvalidDataException e) {
+            logger.error("Невалідні дані клієнта", e);
+            System.err.println("❌ ПОМИЛКА: " + e.getMessage());
+
+        } catch (IOException e) {
+            logger.error("Помилка IO при читанні клієнтів", e);
+            System.err.println("❌ ПОМИЛКА: " + e.getMessage());
+
+        } finally {
+            logger.info("Завершення завантаження клієнтів");
         }
+    }
 
-        // Switch з ProductCategory та обчисленнями
-        System.out.println("\n--- Switch з ProductCategory та обчисленнями ---");
-        ProductCategory[] categories = ProductCategory.values();
-        double basePrice = 1000.0;
+    private static void demonstrateErrorHandling() {
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("3. ДЕМОНСТРАЦІЯ ОБРОБКИ ПОМИЛОК");
+        System.out.println("=".repeat(80));
 
-        for (ProductCategory category : categories) {
-            String warranty = switch (category) {
-                case ELECTRONICS -> "2 роки гарантії виробника";
-                case FURNITURE -> "1 рік гарантії";
-                case CLOTHING, BOOKS, FOOD, TOYS, SPORTS, BEAUTY ->
-                        category.getReturnDays() + " днів на повернення";
-            };
+        // Тест 1: Неіснуючий файл
+        System.out.println("\n--- Тест 1: Неіснуючий файл ---");
+        testNonExistentFile();
 
-            System.out.printf("%-15s: %.2f грн → %.2f грн з податком | %s%n",
-                    category.getUkrainianName(),
-                    basePrice,
-                    category.getPriceWithTax(basePrice),
-                    warranty
+        // Тест 2: Невалідні дані
+        System.out.println("\n--- Тест 2: Невалідні дані ---");
+        testInvalidData();
+
+        // Тест 3: Порожній файл
+        System.out.println("\n--- Тест 3: Власне виключення ---");
+        testCustomException();
+    }
+
+    private static void testNonExistentFile() {
+        try {
+            logger.info("Спроба відкрити неіснуючий файл");
+            List<String[]> data = com.ecommerce.service.FileReader.readCSV("data/nonexistent.csv");
+
+        } catch (FileNotFoundException e) {
+            logger.warning("Очікувана помилка: файл не знайдено");
+            System.out.println("✓ FileNotFoundException перехоплено: " + e.getMessage());
+
+        } catch (IOException | InvalidDataException e) {
+            logger.error("Неочікувана помилка", e);
+            System.err.println("❌ Неочікувана помилка: " + e.getMessage());
+        }
+    }
+
+    private static void testInvalidData() {
+        try {
+            logger.info("Спроба створити товар з невалідними даними");
+
+            // Спроба створити товар з від'ємною ціною
+            String[] invalidData = {"Товар", "-100", "5", "ELECTRONICS", "2024-10-01"};
+            throw new InvalidDataException(
+                    "Ціна не може бути від'ємною",
+                    "price",
+                    invalidData[1],
+                    InvalidDataException.ErrorCode.NEGATIVE_VALUE
             );
+
+        } catch (InvalidDataException e) {
+            logger.warning("Очікувана помилка: невалідні дані");
+            System.out.println("✓ InvalidDataException перехоплено:");
+            System.out.println("  " + e.getDetailedMessage());
         }
+    }
 
-        // Switch з PaymentMethod
-        System.out.println("\n--- Switch з PaymentMethod ---");
-        PaymentMethod[] methods = PaymentMethod.values();
-        double amount = 5000.0;
+    private static void testCustomException() {
+        try {
+            logger.info("Тестування власного виключення");
 
-        for (PaymentMethod method : methods) {
-            String recommendation = switch (method) {
-                case CASH -> "💵 Найшвидший спосіб, без комісії";
-                case CREDIT_CARD, DEBIT_CARD -> "💳 Швидко та зручно";
-                case PAYPAL -> "🌐 Безпечна онлайн-оплата";
-                case BANK_TRANSFER -> "🏦 Для великих сум";
-                case CRYPTO -> "₿ Сучасний спосіб оплати";
-            };
-
-            System.out.printf("%-20s: Комісія %.2f грн | %s%n",
-                    method.getUkrainianName(),
-                    method.calculateCommission(amount),
-                    recommendation
+            throw new InvalidDataException(
+                    "Тестова помилка валідації",
+                    "testField",
+                    "invalidValue",
+                    InvalidDataException.ErrorCode.INVALID_FORMAT
             );
-        }
 
-        System.out.println("\n--- Switch з умовами (stock levels) ---");
-        ProductInfo[] products = {
-                ProductInfo.createProduct("Товар A", 100, 0, ProductCategory.ELECTRONICS),
-                ProductInfo.createProduct("Товар B", 200, 3, ProductCategory.CLOTHING),
-                ProductInfo.createProduct("Товар C", 300, 15, ProductCategory.BOOKS),
-                ProductInfo.createProduct("Товар D", 400, 50, ProductCategory.FURNITURE)
+        } catch (InvalidDataException e) {
+            logger.warning("Власне виключення перехоплено");
+            System.out.println("✓ Власне виключення спрацювало:");
+            System.out.println("  Код помилки: " + e.getErrorCode());
+            System.out.println("  Поле: " + e.getFieldName());
+            System.out.println("  Значення: " + e.getInvalidValue());
+            System.out.println("  Повідомлення: " + e.getMessage());
+        }
+    }
+
+    private static void demonstrateMultiCatch() {
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("4. ДЕМОНСТРАЦІЯ MULTI-CATCH");
+        System.out.println("=".repeat(80));
+
+        String[] testFiles = {
+                "data/products.csv",
+                "data/nonexistent.csv",
+                "data/invalid_products.csv"
         };
 
-        for (ProductInfo product : products) {
-            String action;
-            int s = product.stock();
-            if (s == 0) {
-                action = "🔴 ТЕРМІНОВО: Замовити новий товар!";
-            } else if (s > 0 && s <= 5) {
-                action = "🟡 УВАГА: Залишилось мало, поповнити запас";
-            } else if (s > 5 && s <= 20) {
-                action = "🟢 Нормальний рівень запасів";
-            } else {
-                action = "🟢🟢 Достатньо товару на складі";
+        for (String file : testFiles) {
+            System.out.println("\n--- Обробка файлу: " + file + " ---");
+
+            try {
+                logger.info("Спроба читання: " + file);
+                List<String[]> data = com.ecommerce.service.FileReader.readCSV(file);
+                System.out.println("✓ Файл прочитано успішно: " + data.size() + " записів");
+
+            } catch (FileNotFoundException | InvalidDataException e) {
+                // Multi-catch для схожих типів помилок
+                logger.warning("Помилка файлу або даних: " + e.getMessage());
+                System.out.println("⚠ Помилка: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+
+            } catch (IOException e) {
+                logger.error("Помилка вводу/виводу", e);
+                System.err.println("❌ IO помилка: " + e.getMessage());
+
+            } catch (Exception e) {
+                logger.error("Неочікувана помилка", e);
+                System.err.println("❌ Неочікувана помилка: " + e.getMessage());
             }
-
-            System.out.printf("%-10s (Stock: %2d): %s%n",
-                    product.name(), product.stock(), action);
-        }
-
-        // Switch з ShipmentStatus та progress
-        System.out.println("\n--- Switch з ShipmentStatus та прогрес ---");
-        ShipmentStatus[] shipmentStatuses = ShipmentStatus.values();
-
-        for (ShipmentStatus status : shipmentStatuses) {
-            String progressBar = switch (status.getProgressPercentage()) {
-                case 0 -> "□□□□□ 0%";
-                case 20 -> "■□□□□ 20%";
-                case 50 -> "■■■□□ 50%";
-                case 80 -> "■■■■□ 80%";
-                case 100 -> "■■■■■ 100%";
-                default -> "-----";
-            };
-
-            System.out.printf("%-20s: %s%n", status.getUkrainianName(), progressBar);
         }
     }
 
-    private static void demonstrateFullScenario() {
+    private static void demonstrateTryWithResources() {
         System.out.println("\n" + "=".repeat(80));
-        System.out.println("4. ПОВНИЙ СЦЕНАРІЙ ВИКОРИСТАННЯ");
+        System.out.println("5. ДЕМОНСТРАЦІЯ TRY-WITH-RESOURCES");
         System.out.println("=".repeat(80));
 
-        // Крок 1: Створення товарів
-        System.out.println("\n--- Крок 1: Створення каталогу товарів ---");
-        ProductInfo laptop = ProductInfo.createProduct(
-                "Ноутбук HP Pavilion", 28000, 15, ProductCategory.ELECTRONICS);
-        ProductInfo phone = ProductInfo.createProduct(
-                "Samsung Galaxy S24", 25000, 8, ProductCategory.ELECTRONICS);
-        ProductInfo book = ProductInfo.createProduct(
-                "Java Programming", 500, 30, ProductCategory.BOOKS);
+        String filePath = "data/products.csv";
 
-        List<ProductInfo> catalog = List.of(laptop, phone, book);
-        System.out.println("Каталог товарів:");
-        catalog.forEach(p -> System.out.println("  • " + p));
+        // Try-with-resources автоматично закриває ресурси
+        try (java.io.BufferedReader reader = java.nio.file.Files.newBufferedReader(
+                java.nio.file.Paths.get(filePath))) {
 
-        // Крок 2: Реєстрація клієнтів
-        System.out.println("\n--- Крок 2: Реєстрація клієнтів ---");
-        CustomerInfo customer1 = CustomerInfo.createCustomer(
-                "Олександр", "Шевченко", "alex@example.com", "+380501111111");
-        CustomerInfo customer2 = CustomerInfo.createVIPCustomer(
-                "Марія", "Коваленко", "maria@example.com", "+380502222222");
+            logger.info("Файл відкрито з try-with-resources");
+            String line = reader.readLine();
+            System.out.println("✓ Перший рядок: " + line);
+            System.out.println("✓ BufferedReader автоматично закриється");
 
-        System.out.println("Зареєстровані клієнти:");
-        System.out.println("  • " + customer1);
-        System.out.println("  • " + customer2);
-
-        // Крок 3: Створення замовлення
-        System.out.println("\n--- Крок 3: Створення замовлення ---");
-        OrderInfo order1 = OrderInfo.createOrder(
-                customer1,
-                List.of(laptop, book),
-                PaymentMethod.CREDIT_CARD
-        );
-
-        System.out.println("Замовлення створено:");
-        System.out.println(order1);
-        System.out.println("\nДеталі замовлення:");
-        System.out.println("  • Товарів: " + order1.getProductCount());
-        System.out.println("  • Підсумок: " + order1.getSubtotal() + " грн");
-        System.out.println("  • Податки: " + order1.getTaxTotal() + " грн");
-        System.out.println("  • Знижка клієнта: " + order1.getDiscount() + " грн");
-        System.out.println("  • Комісія: " + order1.getPaymentCommission() + " грн");
-        System.out.println("  • Разом до сплати: " + order1.getTotalAmount() + " грн");
-
-        // Крок 4: Життєвий цикл замовлення
-        System.out.println("\n--- Крок 4: Життєвий цикл замовлення ---");
-        System.out.println("Статус 1: " + order1.status() + " - " + order1.getOrderSummary());
-
-        OrderInfo order2 = order1.withStatus(OrderStatus.CONFIRMED);
-        System.out.println("Статус 2: " + order2.status() + " - " + order2.getOrderSummary());
-
-        OrderInfo order3 = order2.withStatus(OrderStatus.PROCESSING);
-        System.out.println("Статус 3: " + order3.status() + " - " + order3.getOrderSummary());
-
-        OrderInfo order4 = order3.withStatus(OrderStatus.SHIPPED);
-        System.out.println("Статус 4: " + order4.status() + " - " + order4.getOrderSummary());
-
-        OrderInfo order5 = order4.withStatus(OrderStatus.DELIVERED);
-        System.out.println("Статус 5: " + order5.status() + " - " + order5.getOrderSummary());
-
-        // Крок 5: Управління запасами
-        System.out.println("\n--- Крок 5: Управління запасами ---");
-        System.out.println("Початковий запас ноутбуків: " + laptop.stock());
-        System.out.println("Статус: " + laptop.getStockStatus());
-
-        ProductInfo laptopUpdated = laptop.decreaseStock(12);
-        System.out.println("\nПісля продажу 12 одиниць:");
-        System.out.println("  • Залишок: " + laptopUpdated.stock());
-        System.out.println("  • Статус: " + laptopUpdated.getStockStatus());
-
-        // Крок 6: Порівняння методів оплати
-        System.out.println("\n--- Крок 6: Порівняння методів оплати ---");
-        double orderAmount = order1.getTotalAmount();
-        System.out.println("Сума замовлення: " + orderAmount + " грн\n");
-
-        for (PaymentMethod method : PaymentMethod.values()) {
-            double commission = method.calculateCommission(orderAmount);
-            double total = method.getTotalAmount(orderAmount);
-            System.out.printf("%-20s: комісія %.2f грн, разом %.2f грн (%s)%n",
-                    method.getUkrainianName(), commission, total, method.getProcessingTime());
+        } catch (IOException e) {
+            logger.error("Помилка при роботі з try-with-resources", e);
+            System.err.println("❌ Помилка: " + e.getMessage());
         }
+        // Ресурс (reader) автоматично закривається тут, навіть якщо виникла помилка
 
-        // Фінальна статистика
-        System.out.println("\n" + "=".repeat(80));
-        System.out.println("ФІНАЛЬНА СТАТИСТИКА");
-        System.out.println("=".repeat(80));
-
-        System.out.println("Всього клієнтів: 2");
-        System.out.println("Всього замовлень: 1");
-        System.out.println("Всього товарів у каталозі: " + catalog.size());
-        System.out.printf("Загальний дохід: %.2f грн%n", order5.getTotalAmount());
-        System.out.println("Статус останнього замовлення: " + order5.status().getUkrainianName());
-
-        System.out.println("\n" + "=".repeat(80));
-        System.out.println("✓ Демонстрація завершена успішно!");
-        System.out.println("=".repeat(80));
+        logger.info("Try-with-resources завершено, ресурси закриті");
     }
 }
